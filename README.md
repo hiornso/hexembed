@@ -25,3 +25,10 @@ Now you can simply `#include "some_file.c"` file in your program, and you have a
 
 
 You can find more info and alternative methods here: https://codeplea.com/embedding-files-in-c-programs
+
+# Modifications
+
+Modified by hiornso 2021-12-09 to add
+- arguments to specify infile, outfile and variable name
+- make it stream rather than cache in buffer
+- have an `alignment` global var to allow easy setting of alignment of data

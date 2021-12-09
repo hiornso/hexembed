@@ -23,43 +23,82 @@
  *
  */
 
+/*
+ * Modified by hiornso 2021-12-09 to add
+ * - arguments to specify infile, outfile and variable name
+ * - make it stream rather than cache in buffer
+ * - have an `alignment` global var to allow easy setting of alignment of data
+ */
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
+
+const int alignment = 4;
 
 int main(int argc, char *argv[]) {
-    if (argc < 2) {printf("Usage:\n\thexembed <filename>\n"); return 1;}
+    if (argc < 2) {
+        printf("Usage:\n\thexembed <filename> [-o <outfile>] [-n <variable name>]\n"
+               "By default, varname='file' and outfile is stdout.\n");
+        return -1;
+    }
 
-    const char *fname = argv[1];
-    FILE *fp = fopen(fname, "rb");
+    const char *infile = argv[1];
+    const char *varname = "file";
+    const char *outfile = NULL;
+    for(int i = 2; i < argc; ++i){
+        if (strcmp(argv[i], "-o") == 0) {
+            i++;
+            if (argc < i+1) {
+                printf("No outfile specified, assuming stdout.\n");
+            } else {
+                outfile = argv[i];
+            }
+        } else if (strcmp(argv[i], "-n") == 0) {
+            i++;
+            if (argc < i+1) {
+                printf("No variable name specified, assuming 'file'.\n");
+            } else {
+                varname = argv[i];
+            }
+        } else {
+            printf("Unexpected argument '%s'\n", argv[i]);
+        }
+    }
+    
+    FILE *ofp;
+    if (outfile == NULL) {
+        ofp = stdout;
+    } else {
+        ofp = fopen(outfile, "wb");
+        if (!ofp) {
+            fprintf(stderr, "Error opening file: %s.\n", infile);
+            return -1;
+        }
+    }
+    
+    FILE *fp = fopen(infile, "rb");
     if (!fp) {
-        fprintf(stderr, "Error opening file: %s.\n", fname);
-        return 1;
+        fprintf(stderr, "Error opening file: %s.\n", infile);
+        return -1;
     }
 
     fseek(fp, 0, SEEK_END);
     const int fsize = ftell(fp);
 
     fseek(fp, 0, SEEK_SET);
-    unsigned char *b = malloc(fsize);
+    
+    fprintf(ofp, "/* Embedded file: %s */\n", infile);
+    fprintf(ofp, "const int %s_size = %i;\n", varname, fsize);
+    fprintf(ofp, "__attribute__((aligned(%i))) const unsigned char %s[] = {\n\t", alignment, varname);
 
-    fread(b, fsize, 1, fp);
-    fclose(fp);
-
-
-    printf("/* Embedded file: %s */\n", fname);
-    printf("const int fsize = %d;\n", fsize);
-    printf("const unsigned char *file = {\n");
-
-    int i;
-    for (i = 0; i < fsize; ++i) {
-        printf("0x%02x%s",
-                b[i],
-                i == fsize-1 ? "" : ((i+1) % 16 == 0 ? ",\n" : ","));
+    for (int i = 0; i < fsize; ++i) {
+        fprintf(ofp, "0x%02x%s",
+                fgetc(fp),
+                i == fsize-1 ? "" : ((i+1) % 16 == 0 ? ",\n\t" : ","));
     }
 
-    printf("\n};\n");
+    fprintf(ofp, "\n};\n");
 
-    free(b);
+    fclose(fp);
     return 0;
 }
