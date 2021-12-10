@@ -49,19 +49,19 @@ int main(int argc, char *argv[]) {
         if (strcmp(argv[i], "-o") == 0) {
             i++;
             if (argc < i+1) {
-                printf("No outfile specified, assuming stdout.\n");
+                fprintf(stderr, "No outfile specified, assuming stdout.\n");
             } else {
                 outfile = argv[i];
             }
         } else if (strcmp(argv[i], "-n") == 0) {
             i++;
             if (argc < i+1) {
-                printf("No variable name specified, assuming 'file'.\n");
+                fprintf(stderr, "No variable name specified, assuming 'file'.\n");
             } else {
                 varname = argv[i];
             }
         } else {
-            printf("Unexpected argument '%s'\n", argv[i]);
+            fprintf(stderr, "Unexpected argument '%s'\n", argv[i]);
         }
     }
     
